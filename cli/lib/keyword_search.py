@@ -1,3 +1,4 @@
+import math
 import os
 import pickle
 from collections import Counter
@@ -68,6 +69,11 @@ class InvertedIndex:
     def get_tf(self, doc_id: int, term: str) -> int:
         return self.term_frequencies[doc_id][term]
 
+    def get_idf(self, term: str) -> float:
+        total_doc_count = len(self.docmap)
+        term_match_doc_count = len(self.index[term])
+        return math.log((total_doc_count + 1) / (term_match_doc_count + 1))
+
 
 def search_command(query, limit: int = DEFAULT_SEARCH_LIMIT) -> list[Movie]:
     index = InvertedIndex()
@@ -102,6 +108,14 @@ def tf_command(doc_id: int, term: str) -> int:
     token = tokenize_single_term(term)
     tf = index.get_tf(doc_id, token)
     return tf
+
+
+def idf_command(term: str) -> float:
+    index = InvertedIndex()
+    index.load()
+    token = tokenize_single_term(term)
+    idf = index.get_idf(token)
+    return idf
 
 
 def tokenize(text: str) -> list[str]:
