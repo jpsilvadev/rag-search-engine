@@ -10,6 +10,13 @@ class Movie(TypedDict):
     description: str
 
 
+class SearchResult(TypedDict):
+    id: int
+    title: str
+    document: str  # NOTE:going to use Movie["description"] temporarily
+    score: float
+
+
 # consts
 DEFAULT_SEARCH_LIMIT = 5
 
@@ -42,3 +49,14 @@ def load_stop_words() -> list[str]:
     with open(STOPWORDS_PATH, "r", encoding="utf-8") as f:
         stop_words = [preprocess_text(word) for word in f.read().splitlines()]
         return stop_words
+
+
+def format_search_result(
+    doc_id: int, title: str, document: str, score: float
+) -> SearchResult:
+    return {
+        "id": doc_id,
+        "title": title,
+        "document": document,
+        "score": score,
+    }

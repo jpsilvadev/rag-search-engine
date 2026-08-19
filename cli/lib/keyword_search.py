@@ -11,6 +11,8 @@ from .search_utils import (
     CACHE_PATH,
     DEFAULT_SEARCH_LIMIT,
     Movie,
+    SearchResult,
+    format_search_result,
     load_movies,
     load_stop_words,
     preprocess_text,
@@ -120,8 +122,41 @@ class InvertedIndex:
 
     def bm25(self, doc_id: int, term: str) -> float:
         bm25tf = self.get_bm25tf(doc_id, term)
-        bm25_idf = self.get_bm25idf(term)
-        return bm25tf * bm25_idf
+        bm25idf = self.get_bm25idf(term)
+        return bm25tf * bm25idf
+
+    def bm25_search(
+        self, query: str, limit: int = DEFAULT_SEARCH_LIMIT
+    ) -> list[SearchResult]:
+        tokens = tokenize(query)
+        scores: dict[int, float] = {}
+
+        # term-at-a-time (TAAT) implementation
+        # instead of document-at-a-time (DAAT)
+        for token in tokens:
+            doc_ids = self.index.get(token, set())
+            if not doc_ids:
+                continue
+            for doc_id in doc_ids:
+                bm25 = self.bm25(doc_id, token)
+                if doc_id not in scores:
+                    scores[doc_id] = bm25
+                else:
+                    scores[doc_id] += bm25
+
+        sorted_scores = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+
+        search_results: list[SearchResult] = []
+        for doc_id, score in sorted_scores[:limit]:
+            doc = self.docmap[doc_id]
+            search_result = format_search_result(
+                doc_id=doc["id"],
+                title=doc["title"],
+                document=doc["description"],
+                score=scores[doc_id],
+            )
+            search_results.append(search_result)
+        return search_results
 
 
 def search_command(query, limit: int = DEFAULT_SEARCH_LIMIT) -> list[Movie]:
@@ -191,6 +226,15 @@ def bm25idf_command(term: str) -> float:
     token = tokenize_single_term(term)
     bm25idf = index.get_bm25idf(token)
     return bm25idf
+
+
+def bm25search_command(
+    query: str, limit: int = DEFAULT_SEARCH_LIMIT
+) -> list[SearchResult]:
+    index = InvertedIndex()
+    index.load()
+    search_results = index.bm25_search(query, limit)
+    return search_results
 
 
 def tokenize(text: str) -> list[str]:
