@@ -19,6 +19,9 @@ STOPWORDS_PATH = os.path.join(PROJECT_ROOT, "data", "stopwords.txt")
 
 CACHE_PATH = os.path.join(PROJECT_ROOT, "cache")
 
+BM25_K1 = 1.5
+BM25_B = 0.75
+
 
 # helpers
 def preprocess_text(text: str) -> str:
