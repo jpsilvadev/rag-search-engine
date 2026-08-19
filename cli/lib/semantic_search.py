@@ -12,4 +12,4 @@ class SemanticSearch:
 def verify_model() -> None:
     search_instance = SemanticSearch()
     print(f"Model loaded: {search_instance.model}")
-    print(print(f"Max sequence length: {search_instance.model.max_seq_length}"))
+    print(f"Max sequence length: {search_instance.model.max_seq_length}")
