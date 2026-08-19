@@ -74,6 +74,9 @@ class InvertedIndex:
         term_match_doc_count = len(self.index[term])
         return math.log((total_doc_count + 1) / (term_match_doc_count + 1))
 
+    def get_tfidf(self, doc_id: int, term: str) -> float:
+        return self.get_tf(doc_id, term) * self.get_idf(term)
+
 
 def search_command(query, limit: int = DEFAULT_SEARCH_LIMIT) -> list[Movie]:
     index = InvertedIndex()
@@ -116,6 +119,14 @@ def idf_command(term: str) -> float:
     token = tokenize_single_term(term)
     idf = index.get_idf(token)
     return idf
+
+
+def tfidf_command(doc_id: int, term: str) -> float:
+    index = InvertedIndex()
+    index.load()
+    token = tokenize_single_term(term)
+    tfidf = index.get_tfidf(doc_id, token)
+    return tfidf
 
 
 def tokenize(text: str) -> list[str]:
