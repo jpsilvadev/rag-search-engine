@@ -11,6 +11,7 @@ project-includes = [
     "**/*.py*",
     "**/*.ipynb",
 ]
+search-path = ["cli"]
 
 [tool.pylint.messages_control]
 disable = [
