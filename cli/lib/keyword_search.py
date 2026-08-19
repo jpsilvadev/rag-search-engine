@@ -1,5 +1,6 @@
 import os
 import pickle
+from collections import Counter
 
 from nltk.stem import PorterStemmer
 
@@ -19,8 +20,10 @@ class InvertedIndex:
     def __init__(self) -> None:
         self.index: dict[str, set[int]] = {}
         self.docmap: dict[int, Movie] = {}
+        self.term_frequencies: dict[int, Counter[str]] = {}
         self.index_path = os.path.join(CACHE_PATH, "index.pkl")
         self.docmap_path = os.path.join(CACHE_PATH, "docmap.pkl")
+        self.term_frequencies_path = os.path.join(CACHE_PATH, "term_frequencies.pkl")
 
     def build(self):
         movies = load_movies()
@@ -37,11 +40,17 @@ class InvertedIndex:
         with open(self.docmap_path, "wb") as handler:
             pickle.dump(self.docmap, handler)
 
+        with open(self.term_frequencies_path, "wb") as handler:
+            pickle.dump(self.term_frequencies, handler)
+
     def load(self) -> None:
         with open(self.index_path, "rb") as handler:
             self.index = pickle.load(handler)
         with open(self.docmap_path, "rb") as handler:
             self.docmap = pickle.load(handler)
+
+        with open(self.term_frequencies_path, "rb") as handler:
+            self.term_frequencies = pickle.load(handler)
 
     def get_documents(self, term: str) -> list[int]:
         term_doc_ids = self.index.get(term, set())
@@ -53,6 +62,11 @@ class InvertedIndex:
             if token not in self.index:
                 self.index[token] = set()
             self.index[token].add(doc_id)
+
+        self.term_frequencies[doc_id] = Counter(tokens)
+
+    def get_tf(self, doc_id: int, term: str) -> int:
+        return self.term_frequencies[doc_id][term]
 
 
 def search_command(query, limit: int = DEFAULT_SEARCH_LIMIT) -> list[Movie]:
@@ -82,6 +96,14 @@ def build_command() -> None:
     index.save()
 
 
+def tf_command(doc_id: int, term: str) -> int:
+    index = InvertedIndex()
+    index.load()
+    token = tokenize_single_term(term)
+    tf = index.get_tf(doc_id, token)
+    return tf
+
+
 def tokenize(text: str) -> list[str]:
     text = preprocess_text(text)
     tokens = text.split()
@@ -96,3 +118,10 @@ def tokenize(text: str) -> list[str]:
     # stemming
     stemmed_words = list(map(stemmer.stem, filtered_tokens))
     return stemmed_words
+
+
+def tokenize_single_term(text: str) -> str:
+    token = tokenize(text)
+    if len(token) != 1:
+        raise ValueError("Have more than 1 token after processing")
+    return token[0]
