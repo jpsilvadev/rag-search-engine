@@ -33,7 +33,7 @@ class InvertedIndex:
         self.term_frequencies_path = os.path.join(CACHE_PATH, "term_frequencies.pkl")
         self.doc_lengths_path = os.path.join(CACHE_PATH, "doc_lengths.pkl")
 
-    def build(self):
+    def build(self) -> None:
         movies = load_movies()
         for movie in movies:
             self.__add_document(movie["id"], f"{movie['title']} {movie['description']}")
