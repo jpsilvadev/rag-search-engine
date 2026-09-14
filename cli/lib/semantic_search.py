@@ -5,7 +5,12 @@ import numpy as np
 from numpy.typing import NDArray
 from sentence_transformers import SentenceTransformer
 
-from .search_utils import MOVIE_EMBEDDINGS_PATH, Movie, load_movies
+from .search_utils import (
+    MOVIE_EMBEDDINGS_PATH,
+    Movie,
+    SemanticSearchResult,
+    load_movies,
+)
 
 
 class SemanticSearch:
@@ -60,6 +65,37 @@ class SemanticSearch:
 
         return self.build_embeddings(documents)
 
+    def search(self, query: str, limit: int) -> list[SemanticSearchResult]:
+        if self.embeddings is None or self.embeddings.size == 0:
+            raise ValueError(
+                "No embeddings loaded. Call `load_or_create_embeddings` first."
+            )
+
+        if self.documents is None or len(self.documents) == 0:
+            raise ValueError(
+                "No documents loaded. Call `load_or_create_embeddings` first."
+            )
+
+        q_embed = self.generate_embedding(query)
+
+        similarities: list[tuple[float, Movie]] = []
+        for i, embed in enumerate(self.embeddings):
+            similarity_score = cosine_similarity(q_embed, embed)
+            similarities.append((similarity_score, self.documents[i]))
+
+        similarities.sort(key=lambda x: x[0], reverse=True)
+        similarities = similarities[:limit]
+
+        results: list[SemanticSearchResult] = []
+        for score, doc in similarities:
+            res: SemanticSearchResult = {
+                "score": score,
+                "title": doc["title"],
+                "description": doc["description"],
+            }
+            results.append(res)
+        return results
+
 
 def verify_model() -> None:
     search_instance = SemanticSearch()
@@ -91,3 +127,25 @@ def embed_query_text(query: str) -> None:
     print(f"Query: {query}")
     print(f"First 3 dimensions: {embedding[:3]}")
     print(f"Dimensions: {embedding.shape[0]}")
+
+
+def semantic_search(query: str, limit: int = 5):
+    search_instance = SemanticSearch()
+    documents: list[Movie] = load_movies()
+    search_instance.load_or_create_embeddings(documents)
+    results = search_instance.search(query, limit)
+    for i, result in enumerate(results, start=1):
+        print(
+            f"{i}. {result['title']} (score: {result['score']}.4f)\n  {result['description']}\n"
+        )
+
+
+def cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:
+    dot_product = np.dot(vec1, vec2)
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+
+    return dot_product / (norm1 * norm2)

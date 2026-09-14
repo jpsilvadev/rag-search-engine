@@ -17,6 +17,12 @@ class SearchResult(TypedDict):
     score: float
 
 
+class SemanticSearchResult(TypedDict):
+    score: float
+    title: str
+    description: str
+
+
 # consts
 DEFAULT_SEARCH_LIMIT = 5
 
