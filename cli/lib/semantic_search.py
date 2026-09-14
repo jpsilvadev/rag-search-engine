@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Any
 
 import numpy as np
@@ -8,6 +9,7 @@ from sentence_transformers import SentenceTransformer
 from .search_utils import (
     DEFAULT_CHUNK_OVERLAP,
     DEFAULT_CHUNK_SIZE,
+    DEFAULT_SEMANTIC_CHUNK_SIZE,
     MOVIE_EMBEDDINGS_PATH,
     Movie,
     SemanticSearchResult,
@@ -99,6 +101,31 @@ class SemanticSearch:
         return results
 
 
+# class ChunkedSemanticSearch(SemanticSearch):
+#     def __init__(self, model_name: str = "all-MiniLM-L6-v2") -> None:
+#         super().__init__(model_name)
+#         self.chunk_embeddings = None
+#         self.chunk_metadata = None
+
+#     def build_chunk_embeddings(self, documents: list[Movie]) -> NDArray[Any]:
+#         if not documents:
+#             raise ValueError("documents cannot be empty")
+#         self.documents = documents
+
+#         for doc in documents:
+#             doc_id = doc.get("id")
+#             if not doc_id:
+#                 raise ValueError("document must have an 'id' field")
+#             self.document_map[doc_id] = doc
+
+#         chunks: list = []
+#         chunk_metadata: list[dict] = []
+
+#         for doc in documents:
+#             if not doc.get("description"):
+#                 continue
+#             semantically_chunk_text()
+
 def verify_model() -> None:
     search_instance = SemanticSearch()
     print(f"Model loaded: {search_instance.model}")
@@ -180,6 +207,24 @@ def fixed_size_chunking(
     return chunks
 
 
+def semantinc_chunking(
+    text: str,
+    chunk_size: int = DEFAULT_SEMANTIC_CHUNK_SIZE,
+    overlap: int = DEFAULT_CHUNK_OVERLAP,
+) -> list[str]:
+    sentences = re.split(pattern=r"(?<=[.!?])\s+", string=text)
+    chunks: list[str] = []
+    num_sentences = len(sentences)
+    start = 0
+    while start < num_sentences:
+        chunk_sentences = sentences[start : start + chunk_size]
+        if chunks and len(chunk_sentences) <= overlap:
+            break
+        chunks.append(" ".join(chunk_sentences))
+        start += chunk_size - overlap
+    return chunks
+
+
 def chunk_text(
     text: str,
     chunk_size: int = DEFAULT_CHUNK_SIZE,
@@ -187,5 +232,16 @@ def chunk_text(
 ) -> None:
     chunks = fixed_size_chunking(text, chunk_size, overlap)
     print(f"Chunking {len(text)} characters")
+    for i, chunk in enumerate(chunks, start=1):
+        print(f"{i}. {chunk}")
+
+
+def semantically_chunk_text(
+    text: str,
+    chunk_size: int = DEFAULT_SEMANTIC_CHUNK_SIZE,
+    overlap: int = DEFAULT_CHUNK_OVERLAP,
+) -> None:
+    chunks = semantinc_chunking(text, chunk_size, overlap)
+    print(f"Semantically chunking {len(text)} characters")
     for i, chunk in enumerate(chunks, start=1):
         print(f"{i}. {chunk}")
