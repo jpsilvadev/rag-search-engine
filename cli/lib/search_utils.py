@@ -23,12 +23,18 @@ class SemanticSearchResult(TypedDict):
     description: str
 
 
+class ChunkMetadata(TypedDict):
+    movie_idx: int
+    chunk_idx: int
+    total_chunks: int
+
+
 # consts
 DEFAULT_SEARCH_LIMIT = 5
 
 DEFAULT_CHUNK_SIZE = 200
-DEFAULT_CHUNK_OVERLAP = 0
 DEFAULT_SEMANTIC_CHUNK_SIZE = 4
+DEFAULT_CHUNK_OVERLAP = 1
 
 
 BM25_K1 = 1.5
@@ -41,6 +47,8 @@ STOPWORDS_PATH = os.path.join(PROJECT_ROOT, "data", "stopwords.txt")
 CACHE_PATH = os.path.join(PROJECT_ROOT, "cache")
 
 MOVIE_EMBEDDINGS_PATH = os.path.join(CACHE_PATH, "movie_embeddings.npy")
+CHUNK_EMBEDDINGS_PATH = os.path.join(CACHE_PATH, "chunk_embeddings.npy")
+CHUNK_METADATA_PATH = os.path.join(CACHE_PATH, "chunk_metadata.json")
 
 
 # helpers
