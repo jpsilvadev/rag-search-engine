@@ -26,6 +26,10 @@ class SemanticSearchResult(TypedDict):
 # consts
 DEFAULT_SEARCH_LIMIT = 5
 
+DEFAULT_CHUNK_SIZE = 200
+DEFAULT_CHUNK_OVERLAP = 1
+
+
 BM25_K1 = 1.5
 BM25_B = 0.75
 

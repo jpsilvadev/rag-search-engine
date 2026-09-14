@@ -6,6 +6,8 @@ from numpy.typing import NDArray
 from sentence_transformers import SentenceTransformer
 
 from .search_utils import (
+    DEFAULT_CHUNK_OVERLAP,
+    DEFAULT_CHUNK_SIZE,
     MOVIE_EMBEDDINGS_PATH,
     Movie,
     SemanticSearchResult,
@@ -149,3 +151,41 @@ def cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:
         return 0.0
 
     return dot_product / (norm1 * norm2)
+
+
+# def fixed_size_chunking(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE) -> list[str]:
+#     words: list[str] = text.split()
+#     chunks: list[str] = []
+#     for i in range(0, len(words), chunk_size):
+#         chunks.append(" ".join(words[i : i + chunk_size]))
+#     return chunks
+
+
+def fixed_size_chunking(
+    text: str,
+    chunk_size: int = DEFAULT_CHUNK_SIZE,
+    overlap: int = DEFAULT_CHUNK_OVERLAP,
+) -> list[str]:
+    words: list[str] = text.split()
+    chunks: list[str] = []
+    num_words = len(words)
+    start = 0
+    while start < num_words:
+        chunk_words = words[start : start + chunk_size]
+        if chunks and len(chunk_words) <= overlap:
+            break
+
+        chunks.append(" ".join(chunk_words))
+        start += chunk_size - overlap
+    return chunks
+
+
+def chunk_text(
+    text: str,
+    chunk_size: int = DEFAULT_CHUNK_SIZE,
+    overlap: int = DEFAULT_CHUNK_OVERLAP,
+) -> None:
+    chunks = fixed_size_chunking(text, chunk_size, overlap)
+    print(f"Chunking {len(text)} characters")
+    for i, chunk in enumerate(chunks, start=1):
+        print(f"{i}. {chunk}")
