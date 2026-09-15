@@ -15,8 +15,11 @@ from .search_utils import (
     DEFAULT_SEMANTIC_CHUNK_SIZE,
     MOVIE_EMBEDDINGS_PATH,
     ChunkMetadata,
+    ChunkScore,
     Movie,
+    SearchResult,
     SemanticSearchResult,
+    format_search_result,
     load_movies,
 )
 
@@ -53,7 +56,7 @@ class SemanticSearch:
             docs.append(doc_repr)
         self.embeddings = self.model.encode(docs, show_progress_bar=True)
 
-        os.makedirs(MOVIE_EMBEDDINGS_PATH, exist_ok=True)
+        os.makedirs(os.path.dirname(MOVIE_EMBEDDINGS_PATH), exist_ok=True)
         np.save(file=MOVIE_EMBEDDINGS_PATH, arr=self.embeddings)
         return self.embeddings
 
@@ -62,6 +65,7 @@ class SemanticSearch:
             raise ValueError("documents cannot be empty")
         self.documents = documents
 
+        self.document_map = {}
         for doc in documents:
             doc_id = doc.get("id")
             if not doc_id:
@@ -114,6 +118,60 @@ class ChunkedSemanticSearch(SemanticSearch):
         self.chunk_embeddings = None
         self.chunk_metadata = None
 
+    def search_chunks(self, query: str, limit: int = 10) -> list[SearchResult]:
+        if self.chunk_embeddings is None or self.chunk_embeddings.size == 0:
+            raise ValueError(
+                "No chunk embeddings loaded. Call `load_or_create_chunk_embeddings` first."
+            )
+
+        if self.chunk_metadata is None:
+            raise ValueError(
+                "No chunk metadata loaded. Call `load_or_create_chunk_embeddings` first."
+            )
+
+        if self.documents is None or len(self.documents) == 0:
+            raise ValueError(
+                "No documents loaded. Call `load_or_create_embeddings` first."
+            )
+
+        q_embed = self.generate_embedding(query)
+
+        chunk_scores: list[ChunkScore] = []
+        for i, chunk_embed in enumerate(self.chunk_embeddings):
+            similarity_score = cosine_similarity(q_embed, chunk_embed)
+            chunk_score: ChunkScore = {
+                "chunk_idx": self.chunk_metadata[i]["chunk_idx"],
+                "movie_idx": self.chunk_metadata[i]["movie_idx"],
+                "score": similarity_score,
+            }
+            chunk_scores.append(chunk_score)
+
+        idx_to_bestchunk: dict[int, ChunkScore] = {}
+        for chunk_score in chunk_scores:
+            movie_idx = chunk_score.get("movie_idx", None)
+            if (
+                movie_idx not in idx_to_bestchunk
+                or chunk_score["score"] > idx_to_bestchunk[movie_idx]["score"]
+            ):
+                idx_to_bestchunk[movie_idx] = chunk_score
+
+        sorted_chunk_scores = sorted(
+            idx_to_bestchunk.values(), key=lambda x: x["score"], reverse=True
+        )
+        filtered_chunk_scores = sorted_chunk_scores[:limit]
+
+        results: list[SearchResult] = []
+        for i, chunk in enumerate(filtered_chunk_scores):
+            search_result: SearchResult = format_search_result(
+                doc_id=chunk.get("movie_idx"),
+                title=self.documents[chunk.get("movie_idx")]["title"],
+                document=self.documents[chunk.get("movie_idx")]["description"],
+                score=chunk.get("score"),
+                metadata=self.chunk_metadata[chunk.get("chunk_idx")],
+            )
+            results.append(search_result)
+        return results
+
     def build_chunk_embeddings(self, documents: list[Movie]) -> NDArray[Any]:
         if not documents:
             raise ValueError("documents cannot be empty")
@@ -150,7 +208,7 @@ class ChunkedSemanticSearch(SemanticSearch):
         self.chunk_embeddings = self.model.encode(chunks)
         self.chunk_metadata = chunk_metadata
 
-        os.makedirs(CHUNK_EMBEDDINGS_PATH, exist_ok=True)
+        os.makedirs(os.path.dirname(CHUNK_EMBEDDINGS_PATH), exist_ok=True)
         np.save(CHUNK_EMBEDDINGS_PATH, self.chunk_embeddings)
 
         with open(CHUNK_METADATA_PATH, mode="w", encoding="utf-8") as f:
@@ -163,6 +221,40 @@ class ChunkedSemanticSearch(SemanticSearch):
                 indent=2,
             )
         return self.chunk_embeddings
+
+    def load_or_create_chunk_embeddings(self, documents: list[Movie]) -> NDArray[Any]:
+        if not documents:
+            raise ValueError("documents cannot be empty")
+        self.documents = documents
+
+        self.document_map = {}
+        for doc in documents:
+            doc_id = doc.get("id")
+            if not doc_id:
+                raise ValueError("document must have an 'id' field")
+            self.document_map[doc_id] = doc
+
+        if (os.path.exists(CHUNK_EMBEDDINGS_PATH)) and (
+            os.path.exists(CHUNK_METADATA_PATH)
+        ):
+            self.chunk_embeddings = np.load(CHUNK_EMBEDDINGS_PATH)
+            with open(CHUNK_METADATA_PATH, mode="r", encoding="utf-8") as f:
+                data = json.load(f)
+                self.chunk_metadata = data["chunks"]
+            return self.chunk_embeddings
+
+        return self.build_chunk_embeddings(documents)
+
+
+def cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:
+    dot_product = np.dot(vec1, vec2)
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+
+    return dot_product / (norm1 * norm2)
 
 
 def verify_model() -> None:
@@ -197,6 +289,13 @@ def embed_query_text(query: str) -> None:
     print(f"Dimensions: {embedding.shape[0]}")
 
 
+def embed_chunks() -> None:
+    chunked_search_instance = ChunkedSemanticSearch()
+    documents: list[Movie] = load_movies()
+    embeddings = chunked_search_instance.load_or_create_chunk_embeddings(documents)
+    print(f"Generated {len(embeddings)} chunked embeddings")
+
+
 def semantic_search(query: str, limit: int = 5):
     search_instance = SemanticSearch()
     documents: list[Movie] = load_movies()
@@ -208,23 +307,14 @@ def semantic_search(query: str, limit: int = 5):
         )
 
 
-def cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:
-    dot_product = np.dot(vec1, vec2)
-    norm1 = np.linalg.norm(vec1)
-    norm2 = np.linalg.norm(vec2)
-
-    if norm1 == 0 or norm2 == 0:
-        return 0.0
-
-    return dot_product / (norm1 * norm2)
-
-
-# def fixed_size_chunking(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE) -> list[str]:
-#     words: list[str] = text.split()
-#     chunks: list[str] = []
-#     for i in range(0, len(words), chunk_size):
-#         chunks.append(" ".join(words[i : i + chunk_size]))
-#     return chunks
+def search_chunked(query: str, limit: int = 5):
+    chunked_search_instance = ChunkedSemanticSearch()
+    documents: list[Movie] = load_movies()
+    chunked_search_instance.load_or_create_chunk_embeddings(documents)
+    results = chunked_search_instance.search_chunks(query, limit)
+    for i, result in enumerate(results, start=1):
+        print(f"\n{i}. {result.get('title')} (score: {result.get('score'):.4f})")
+        print(f"   {result.get('document')}...")
 
 
 def fixed_size_chunking(

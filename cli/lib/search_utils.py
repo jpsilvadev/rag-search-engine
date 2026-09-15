@@ -10,13 +10,6 @@ class Movie(TypedDict):
     description: str
 
 
-class SearchResult(TypedDict):
-    id: int
-    title: str
-    document: str  # NOTE:going to use Movie["description"] temporarily
-    score: float
-
-
 class SemanticSearchResult(TypedDict):
     score: float
     title: str
@@ -29,7 +22,23 @@ class ChunkMetadata(TypedDict):
     total_chunks: int
 
 
+class ChunkScore(TypedDict):
+    chunk_idx: int
+    movie_idx: int
+    score: float
+
+
+class SearchResult(TypedDict):
+    id: int
+    title: str
+    document: str
+    metadata: ChunkMetadata | None
+    score: float
+
+
 # consts
+
+SCORE_PRECISION = 4
 DEFAULT_SEARCH_LIMIT = 5
 
 DEFAULT_CHUNK_SIZE = 200
@@ -73,11 +82,16 @@ def load_stop_words() -> list[str]:
 
 
 def format_search_result(
-    doc_id: int, title: str, document: str, score: float
+    doc_id: int,
+    title: str,
+    document: str,
+    score: float,
+    metadata: ChunkMetadata | None = None,
 ) -> SearchResult:
     return {
         "id": doc_id,
         "title": title,
-        "document": document,
-        "score": score,
+        "document": document[:100],
+        "score": round(score, SCORE_PRECISION),
+        "metadata": metadata,
     }
