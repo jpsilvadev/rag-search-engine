@@ -1,7 +1,7 @@
 import json
 import os
 import string
-from typing import NotRequired, TypedDict, cast
+from typing import Literal, NotRequired, TypedDict, cast
 
 
 class Movie(TypedDict):
@@ -65,7 +65,7 @@ class RRFScoreData(TypedDict):
 class RRFSearchResult(TypedDict):
     original_query: str
     query: str
-    enhancement_method: str | None
+    enhancement_method: Literal["spell", "rewrite"] | None
     k: int
     results: list[SearchResult]
 

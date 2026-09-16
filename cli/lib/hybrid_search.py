@@ -1,4 +1,5 @@
 import os
+from typing import Literal
 
 from .keyword_search import InvertedIndex
 from .query_enhancement import enhance_query
@@ -204,7 +205,7 @@ def weighted_search(
 def rrf_search(
     query: str,
     k: int = RRF_K,
-    enhance: str | None = None,
+    enhance: Literal["spell", "rewrite"] | None = None,
     limit: int = DEFAULT_SEARCH_LIMIT,
 ) -> RRFSearchResult:
     documents = load_movies()
