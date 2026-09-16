@@ -48,6 +48,12 @@ def main() -> None:
         help=f"RRF parameter k (default={RRF_K})",
     )
     rrf_search_parser.add_argument(
+        "--enhance",
+        type=str,
+        choices=["spell"],
+        help="Query enhancement method",
+    )
+    rrf_search_parser.add_argument(
         "--limit",
         type=int,
         default=DEFAULT_SEARCH_LIMIT,
@@ -92,8 +98,14 @@ def main() -> None:
             result = rrf_search(
                 query=args.query,
                 k=args.k,
+                enhance=args.enhance,
                 limit=args.limit,
             )
+
+            if result["enhancement_method"]:
+                print(
+                    f"Enhanced query ({result['enhancement_method']}): '{result['original_query']}' -> '{result['query']}'"
+                )
 
             print(
                 f"RRF Hybrid Search Results for '{result['query']}' (k={result['k']}):"

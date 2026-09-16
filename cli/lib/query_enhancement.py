@@ -1,0 +1,51 @@
+import os
+
+from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+
+api_key = os.environ.get("OPENROUTER_API_KEY")
+if not api_key:
+    raise RuntimeError("OPENROUTER_API_KEY environment variable not set")
+
+
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=api_key,
+)
+model = "openrouter/free"
+
+
+def spell_correct(query: str) -> str:
+    # NOTE: "openrouter/free" auto-routes to whichever free model is available,
+    # which can occasionally return unrelated/garbage output (e.g. a safety
+    # classifier label instead of a corrected query). No validation is done
+    # on the result here, so bad output currently passes through as-is.
+    sys_prompt = f"""Fix any spelling errors in the user-provided movie search query below.
+Correct only clear, high-confidence typos. Do not rewrite, add, remove, or reorder words.
+Preserve punctuation and capitalization unless a change is required for a typo fix.
+If there are no spelling errors, or if you're unsure, output the original query unchanged.
+Output only the final query text, nothing else.
+User query: "{query}"
+"""
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": sys_prompt},
+            {"role": "user", "content": query},
+        ],
+    )
+
+    content = response.choices[0].message.content
+    if not content:
+        return query
+    return content.strip().strip('"')
+
+
+def enhance_query(query: str, method: str | None = None) -> str:
+    match method:
+        case "spell":
+            return spell_correct(query)
+        case _:
+            return query

@@ -65,6 +65,7 @@ class RRFScoreData(TypedDict):
 class RRFSearchResult(TypedDict):
     original_query: str
     query: str
+    enhancement_method: str | None
     k: int
     results: list[SearchResult]
 
