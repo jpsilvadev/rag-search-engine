@@ -22,6 +22,8 @@ class ChunkMetadata(TypedDict):
     total_chunks: int
     bm25_score: NotRequired[float]
     semantic_score: NotRequired[float]
+    bm25_rank: NotRequired[int | None]
+    semantic_rank: NotRequired[int | None]
 
 
 class ChunkScore(TypedDict):
@@ -37,6 +39,7 @@ class SearchResult(TypedDict):
     metadata: ChunkMetadata | None
     score: float
 
+
 class CombinedScoreData(TypedDict):
     title: str
     document: str
@@ -51,6 +54,21 @@ class WeightedSearchResult(TypedDict):
     results: list[SearchResult]
 
 
+class RRFScoreData(TypedDict):
+    title: str
+    document: str
+    rrf_score: float
+    bm25_rank: int | None
+    semantic_rank: int | None
+
+
+class RRFSearchResult(TypedDict):
+    original_query: str
+    query: str
+    k: int
+    results: list[SearchResult]
+
+
 # consts
 
 SCORE_PRECISION = 4
@@ -61,6 +79,7 @@ DEFAULT_SEMANTIC_CHUNK_SIZE = 4
 DEFAULT_CHUNK_OVERLAP = 1
 
 DEFAULT_ALPHA = 0.5
+RRF_K = 60
 
 BM25_K1 = 1.5
 BM25_B = 0.75
@@ -105,14 +124,18 @@ def format_search_result(
     metadata: ChunkMetadata | None = None,
     bm25_score: float | None = None,
     semantic_score: float | None = None,
+    bm25_rank: int | None = None,
+    semantic_rank: int | None = None,
 ) -> SearchResult:
-    if bm25_score is not None or semantic_score is not None:
-        merged: dict = dict(metadata or {})
-        if bm25_score is not None:
-            merged["bm25_score"] = bm25_score
-        if semantic_score is not None:
-            merged["semantic_score"] = semantic_score
-        metadata = cast(ChunkMetadata, merged)
+    extras = {
+        "bm25_score": bm25_score,
+        "semantic_score": semantic_score,
+        "bm25_rank": bm25_rank,
+        "semantic_rank": semantic_rank,
+    }
+    extras = {key: value for key, value in extras.items() if value is not None}
+    if extras:
+        metadata = cast(ChunkMetadata, {**(metadata or {}), **extras})
     return {
         "id": doc_id,
         "title": title,
