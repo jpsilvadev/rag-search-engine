@@ -65,7 +65,7 @@ class RRFScoreData(TypedDict):
 class RRFSearchResult(TypedDict):
     original_query: str
     query: str
-    enhancement_method: Literal["spell", "rewrite"] | None
+    enhancement_method: Literal["spell", "rewrite", "expand"] | None
     k: int
     results: list[SearchResult]
 

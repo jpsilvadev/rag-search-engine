@@ -205,7 +205,7 @@ def weighted_search(
 def rrf_search(
     query: str,
     k: int = RRF_K,
-    enhance: Literal["spell", "rewrite"] | None = None,
+    enhance: Literal["spell", "rewrite", "expand"] | None = None,
     limit: int = DEFAULT_SEARCH_LIMIT,
 ) -> RRFSearchResult:
     documents = load_movies()

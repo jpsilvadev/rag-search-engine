@@ -29,18 +29,7 @@ If there are no spelling errors, or if you're unsure, output the original query 
 Output only the final query text, nothing else.
 User query: "{query}"
 """
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": sys_prompt},
-            {"role": "user", "content": query},
-        ],
-    )
-
-    content = response.choices[0].message.content
-    if not content:
-        return query
-    return content.strip().strip('"')
+    return handle_llm_query_response(query, sys_prompt)
 
 
 def rewrite_query(query: str) -> str:
@@ -63,6 +52,39 @@ Output only the rewritten query text, nothing else.
 
 User query: "{query}"
 """
+    return handle_llm_query_response(query, sys_prompt)
+
+
+def expand_query(query: str) -> str:
+    sys_prompt = f"""Expand the user-provided movie search query below with related terms.
+
+Add synonyms and related concepts that might appear in movie descriptions.
+Keep expansions relevant and focused.
+Output only the additional terms; they will be appended to the original query.
+
+Examples:
+- "scary bear movie" -> "scary horror grizzly bear movie terrifying film"
+- "action movie with bear" -> "action thriller bear chase fight adventure"
+- "comedy with bear" -> "comedy funny bear humor lighthearted"
+
+User query: "{query}"
+"""
+    return handle_llm_query_response(query, sys_prompt)
+
+
+def enhance_query(query: str, method: str | None = None) -> str:
+    match method:
+        case "spell":
+            return spell_correct(query)
+        case "rewrite":
+            return rewrite_query(query)
+        case "expand":
+            return expand_query(query)
+        case _:
+            return query
+
+
+def handle_llm_query_response(query: str, sys_prompt: str) -> str:
     response = client.chat.completions.create(
         model=model,
         messages=[
@@ -75,13 +97,3 @@ User query: "{query}"
     if not content:
         return query
     return content.strip().strip('"')
-
-
-def enhance_query(query: str, method: str | None = None) -> str:
-    match method:
-        case "spell":
-            return spell_correct(query)
-        case "rewrite":
-            return rewrite_query(query)
-        case _:
-            return query
