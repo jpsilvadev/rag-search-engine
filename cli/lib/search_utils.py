@@ -1,7 +1,7 @@
 import json
 import os
 import string
-from typing import TypedDict
+from typing import NotRequired, TypedDict, cast
 
 
 class Movie(TypedDict):
@@ -20,6 +20,8 @@ class ChunkMetadata(TypedDict):
     movie_idx: int
     chunk_idx: int
     total_chunks: int
+    bm25_score: NotRequired[float]
+    semantic_score: NotRequired[float]
 
 
 class ChunkScore(TypedDict):
@@ -35,6 +37,19 @@ class SearchResult(TypedDict):
     metadata: ChunkMetadata | None
     score: float
 
+class CombinedScoreData(TypedDict):
+    title: str
+    document: str
+    bm25_score: float
+    semantic_score: float
+
+
+class WeightedSearchResult(TypedDict):
+    original_query: str
+    query: str
+    alpha: float
+    results: list[SearchResult]
+
 
 # consts
 
@@ -45,6 +60,7 @@ DEFAULT_CHUNK_SIZE = 200
 DEFAULT_SEMANTIC_CHUNK_SIZE = 4
 DEFAULT_CHUNK_OVERLAP = 1
 
+DEFAULT_ALPHA = 0.5
 
 BM25_K1 = 1.5
 BM25_B = 0.75
@@ -87,7 +103,16 @@ def format_search_result(
     document: str,
     score: float,
     metadata: ChunkMetadata | None = None,
+    bm25_score: float | None = None,
+    semantic_score: float | None = None,
 ) -> SearchResult:
+    if bm25_score is not None or semantic_score is not None:
+        merged: dict = dict(metadata or {})
+        if bm25_score is not None:
+            merged["bm25_score"] = bm25_score
+        if semantic_score is not None:
+            merged["semantic_score"] = semantic_score
+        metadata = cast(ChunkMetadata, merged)
     return {
         "id": doc_id,
         "title": title,

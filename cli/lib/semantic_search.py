@@ -162,10 +162,11 @@ class ChunkedSemanticSearch(SemanticSearch):
 
         results: list[SearchResult] = []
         for i, chunk in enumerate(filtered_chunk_scores):
+            movie = self.documents[chunk.get("movie_idx")]
             search_result: SearchResult = format_search_result(
-                doc_id=chunk.get("movie_idx"),
-                title=self.documents[chunk.get("movie_idx")]["title"],
-                document=self.documents[chunk.get("movie_idx")]["description"],
+                doc_id=movie["id"],
+                title=movie["title"],
+                document=movie["description"],
                 score=chunk.get("score"),
                 metadata=self.chunk_metadata[chunk.get("chunk_idx")],
             )
