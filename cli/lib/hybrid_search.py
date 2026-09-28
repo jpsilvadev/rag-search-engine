@@ -208,7 +208,7 @@ def rrf_search(
     query: str,
     k: int = RRF_K,
     enhance: Literal["spell", "rewrite", "expand"] | None = None,
-    rerank_method: Literal["individual"] | None = None,
+    rerank_method: Literal["individual", "batch", "cross_encoder"] | None = None,
     limit: int = DEFAULT_SEARCH_LIMIT,
 ) -> RRFSearchResult:
     documents = load_movies()

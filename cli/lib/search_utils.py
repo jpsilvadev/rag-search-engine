@@ -79,6 +79,15 @@ class RRFSearchResult(TypedDict):
     results: list[SearchResult] | list[RerankedSearchResult]
 
 
+class GoldenTestCase(TypedDict):
+    query: str
+    relevant_docs: list[str]
+
+
+class GoldenDataset(TypedDict):
+    test_cases: list[GoldenTestCase]
+
+
 # consts
 
 SCORE_PRECISION = 4
@@ -100,6 +109,7 @@ DATA_PATH = os.path.join(PROJECT_ROOT, "data", "movies.json")
 STOPWORDS_PATH = os.path.join(PROJECT_ROOT, "data", "stopwords.txt")
 
 CACHE_PATH = os.path.join(PROJECT_ROOT, "cache")
+GOLDEN_DATASET_PATH = os.path.join(PROJECT_ROOT, "data", "golden_dataset.json")
 
 MOVIE_EMBEDDINGS_PATH = os.path.join(CACHE_PATH, "movie_embeddings.npy")
 CHUNK_EMBEDDINGS_PATH = os.path.join(CACHE_PATH, "chunk_embeddings.npy")
@@ -154,3 +164,8 @@ def format_search_result(
         "score": round(score, SCORE_PRECISION),
         "metadata": metadata,
     }
+
+
+def load_golden_dataset() -> GoldenDataset:
+    with open(GOLDEN_DATASET_PATH, "r") as f:
+        return json.load(f)
