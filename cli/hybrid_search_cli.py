@@ -54,6 +54,12 @@ def main() -> None:
         help="Query enhancement method",
     )
     rrf_search_parser.add_argument(
+        "--rerank-method",
+        type=str,
+        choices=["individual", "batch", "cross_encoder"],
+        help="Reranking method to use",
+    )
+    rrf_search_parser.add_argument(
         "--limit",
         type=int,
         default=DEFAULT_SEARCH_LIMIT,
@@ -99,6 +105,7 @@ def main() -> None:
                 query=args.query,
                 k=args.k,
                 enhance=args.enhance,
+                rerank_method=args.rerank_method,
                 limit=args.limit,
             )
 
@@ -107,11 +114,19 @@ def main() -> None:
                     f"Enhanced query ({result['enhancement_method']}): '{result['original_query']}' -> '{result['query']}'"
                 )
 
+            if result["reranked"]:
+                print(
+                    f"Re-ranking top {len(result['results'])} results using {result['rerank_method']} method...\n"
+                )
             print(
                 f"RRF Hybrid Search Results for '{result['query']}' (k={result['k']}):"
             )
             for i, res in enumerate(result["results"], start=1):
                 print(f"{i}. {res['title']}")
+                if "individual_score" in res:
+                    print(f"   Re-rank Score: {res.get('individual_score', 0):.3f}/10")
+                if "batch_rank" in res:
+                    print(f"   Re-rank Rank: {res.get('batch_rank', 0)}")
                 print(f"   RRF Score: {res.get('score', 0):.4f}")
                 metadata = res.get("metadata")
                 if metadata is not None:

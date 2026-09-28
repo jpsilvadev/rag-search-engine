@@ -62,18 +62,27 @@ class RRFScoreData(TypedDict):
     semantic_rank: int | None
 
 
+class RerankedSearchResult(SearchResult, total=False):
+    individual_score: NotRequired[int]
+    batch_rank: NotRequired[int]
+
+
 class RRFSearchResult(TypedDict):
     original_query: str
-    query: str
+    enhanced_query: str
     enhancement_method: Literal["spell", "rewrite", "expand"] | None
+    query: str
     k: int
-    results: list[SearchResult]
+    rerank_method: Literal["individual", "batch", "cross_encoder"] | None
+    reranked: bool
+    results: list[SearchResult] | list[RerankedSearchResult]
 
 
 # consts
 
 SCORE_PRECISION = 4
 DEFAULT_SEARCH_LIMIT = 5
+SEARCH_MULTIPLIER = 5
 
 DEFAULT_CHUNK_SIZE = 200
 DEFAULT_SEMANTIC_CHUNK_SIZE = 4

@@ -3,10 +3,12 @@ from typing import Literal
 
 from .keyword_search import InvertedIndex
 from .query_enhancement import enhance_query
+from .reranking import rerank
 from .search_utils import (
     DEFAULT_ALPHA,
     DEFAULT_SEARCH_LIMIT,
     RRF_K,
+    SEARCH_MULTIPLIER,
     CombinedScoreData,
     Movie,
     RRFScoreData,
@@ -206,18 +208,32 @@ def rrf_search(
     query: str,
     k: int = RRF_K,
     enhance: Literal["spell", "rewrite", "expand"] | None = None,
+    rerank_method: Literal["individual"] | None = None,
     limit: int = DEFAULT_SEARCH_LIMIT,
 ) -> RRFSearchResult:
     documents = load_movies()
     hybrid_search_instance = HybridSearch(documents=documents)
 
-    enhanced_query = enhance_query(query, enhance)
-    results = hybrid_search_instance.rrf_search(query=enhanced_query, k=k, limit=limit)
+    original_query = query
+    enhanced_query = None
+    if enhance:
+        enhanced_query = enhance_query(query, enhance)
+        query = enhanced_query
 
+    search_limit = limit * SEARCH_MULTIPLIER if rerank_method else limit
+    results = hybrid_search_instance.rrf_search(query=query, k=k, limit=search_limit)
+
+    reranked = False
+    if rerank_method:
+        results = rerank(query, results, method=rerank_method, limit=limit)
+        reranked = True
     return {
-        "original_query": query,
-        "query": enhanced_query,
+        "original_query": original_query,
+        "enhanced_query": enhanced_query if enhanced_query is not None else query,
         "enhancement_method": enhance,
+        "query": query,
         "k": k,
+        "rerank_method": rerank_method,
+        "reranked": reranked,
         "results": results,
     }
