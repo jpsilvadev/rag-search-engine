@@ -88,6 +88,20 @@ class GoldenDataset(TypedDict):
     test_cases: list[GoldenTestCase]
 
 
+class QueryEvaluationResult(TypedDict):
+    precision: float
+    recall: float
+    f1_score: float
+    retrieved: list[str]
+    relevant: list[str]
+
+
+class EvaluationSummary(TypedDict):
+    test_cases_count: int
+    limit: int
+    results: dict[str, QueryEvaluationResult]
+
+
 # consts
 
 SCORE_PRECISION = 4

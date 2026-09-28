@@ -32,7 +32,9 @@ def _print_results(
         if metadata is not None:
             bm25_rank = metadata.get("bm25_rank")
             semantic_rank = metadata.get("semantic_rank")
-            details.append(f"BM25: #{bm25_rank + 1}" if bm25_rank is not None else "BM25: -")
+            details.append(
+                f"BM25: #{bm25_rank + 1}" if bm25_rank is not None else "BM25: -"
+            )
             details.append(
                 f"Semantic: #{semantic_rank + 1}"
                 if semantic_rank is not None
@@ -251,12 +253,14 @@ def rrf_search(
     search_limit = limit * SEARCH_MULTIPLIER if rerank_method else limit
     results = hybrid_search_instance.rrf_search(query=query, k=k, limit=search_limit)
     _print_results(f"RRF search results (top {search_limit})", results)
+    print()
 
     reranked = False
     if rerank_method:
         results = rerank(query, results, method=rerank_method, limit=limit)
         reranked = True
         _print_results(f"Final results after re-ranking (top {limit})", results)
+        print()
     return {
         "original_query": original_query,
         "enhanced_query": enhanced_query if enhanced_query is not None else query,

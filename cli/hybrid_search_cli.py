@@ -1,5 +1,6 @@
 import argparse
 
+from lib.evaluation import llm_evaluate_results
 from lib.hybrid_search import RRF_K, normalize, rrf_search, weighted_search
 from lib.search_utils import DEFAULT_ALPHA, DEFAULT_SEARCH_LIMIT
 
@@ -58,6 +59,11 @@ def main() -> None:
         type=str,
         choices=["individual", "batch", "cross_encoder"],
         help="Reranking method to use",
+    )
+    rrf_search_parser.add_argument(
+        "--evaluate",
+        action="store_true",
+        help="Apply LLM evaluation to the search results",
     )
     rrf_search_parser.add_argument(
         "--limit",
@@ -145,6 +151,17 @@ def main() -> None:
                     )
                 print(f"   {res['document'][:100]}...")
                 print()
+
+            if args.evaluate:
+                print("LLM Evaluation (0-3 relevance scale):")
+                llm_scores = llm_evaluate_results(
+                    query=args.query, results=result["results"]
+                )
+
+                for i, (res, score) in enumerate(
+                    zip(result["results"], llm_scores), start=1
+                ):
+                    print(f"{i}. {res['title']}: {score}/3")
         case _:
             parser.print_help()
 
