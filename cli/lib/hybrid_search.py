@@ -11,6 +11,7 @@ from .search_utils import (
     SEARCH_MULTIPLIER,
     CombinedScoreData,
     Movie,
+    RerankedSearchResult,
     RRFScoreData,
     RRFSearchResult,
     SearchResult,
@@ -19,6 +20,31 @@ from .search_utils import (
     load_movies,
 )
 from .semantic_search import ChunkedSemanticSearch
+
+
+def _print_results(
+    heading: str, results: list[SearchResult] | list[RerankedSearchResult]
+) -> None:
+    print(f"\n=== {heading} ===")
+    for position, result in enumerate(results, start=1):
+        details = [f"RRF: {result['score']:.4f}"]
+        metadata = result.get("metadata")
+        if metadata is not None:
+            bm25_rank = metadata.get("bm25_rank")
+            semantic_rank = metadata.get("semantic_rank")
+            details.append(f"BM25: #{bm25_rank + 1}" if bm25_rank is not None else "BM25: -")
+            details.append(
+                f"Semantic: #{semantic_rank + 1}"
+                if semantic_rank is not None
+                else "Semantic: -"
+            )
+        if "individual_score" in result:
+            details.append(f"Re-rank: {result['individual_score']}/10")
+        if "batch_rank" in result:
+            details.append(f"Re-rank: #{result['batch_rank']}")
+        if "crossencoder_score" in result:
+            details.append(f"Cross encoder: {result['crossencoder_score']:.3f}")
+        print(f"{position:>2}. {result['title']} | {' | '.join(details)}")
 
 
 class HybridSearch:
@@ -215,18 +241,22 @@ def rrf_search(
     hybrid_search_instance = HybridSearch(documents=documents)
 
     original_query = query
+    print(f"\n=== Original query ===\n{original_query}")
     enhanced_query = None
     if enhance:
         enhanced_query = enhance_query(query, enhance)
         query = enhanced_query
+    print(f"\n=== Query after enhancements ===\n{query}")
 
     search_limit = limit * SEARCH_MULTIPLIER if rerank_method else limit
     results = hybrid_search_instance.rrf_search(query=query, k=k, limit=search_limit)
+    _print_results(f"RRF search results (top {search_limit})", results)
 
     reranked = False
     if rerank_method:
         results = rerank(query, results, method=rerank_method, limit=limit)
         reranked = True
+        _print_results(f"Final results after re-ranking (top {limit})", results)
     return {
         "original_query": original_query,
         "enhanced_query": enhanced_query if enhanced_query is not None else query,
