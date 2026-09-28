@@ -65,6 +65,7 @@ class RRFScoreData(TypedDict):
 class RerankedSearchResult(SearchResult, total=False):
     individual_score: NotRequired[int]
     batch_rank: NotRequired[int]
+    crossencoder_score: NotRequired[int]
 
 
 class RRFSearchResult(TypedDict):
