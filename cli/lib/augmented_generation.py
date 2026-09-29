@@ -37,3 +37,30 @@ def rag(query: str) -> tuple[RRFSearchResult, str]:
     content = (response.choices[0].message.content or "").strip()
 
     return docs, content
+
+
+def summarize(
+    query: str, limit: int = DEFAULT_SEARCH_LIMIT
+) -> tuple[RRFSearchResult, str]:
+    results: RRFSearchResult = rrf_search(query, limit=limit)
+    prompt = f"""Provide information useful to the query below by synthesizing data from multiple search results in detail.
+
+The goal is to provide comprehensive information so that users know what their options are.
+Your response should be information-dense and concise, with several key pieces of information about the genre, plot, etc. of each movie.
+
+This should be tailored to Webflyx users. Webflyx is a movie streaming service.
+
+Query: {query}
+
+Search results:
+{results}
+
+Provide a comprehensive 3–4 sentence answer that combines information from multiple sources:"""
+
+    response = client.chat.completions.create(
+        model=model, messages=[{"role": "user", "content": prompt}]
+    )
+
+    content = (response.choices[0].message.content or "").strip()
+
+    return results, content
