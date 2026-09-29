@@ -1,6 +1,11 @@
 import argparse
 
-from lib.augmented_generation import rag, summarize, summarize_with_citations
+from lib.augmented_generation import (
+    question_answering,
+    rag,
+    summarize,
+    summarize_with_citations,
+)
 from lib.search_utils import DEFAULT_SEARCH_LIMIT
 
 
@@ -35,6 +40,18 @@ def main() -> None:
         help="Limit the number of documents to summarize",
     )
 
+    question_parser = subparsers.add_parser(
+        "question", help="Ask a question based on retrieved documents"
+    )
+    question_parser.add_argument("query", type=str, help="Search query for RAG")
+    question_parser.add_argument(
+        "--limit",
+        type=int,
+        nargs="?",
+        default=DEFAULT_SEARCH_LIMIT,
+        help="Limit the number of documents to consider for the question",
+    )
+
     args = parser.parse_args()
 
     match args.command:
@@ -65,6 +82,16 @@ def main() -> None:
             for res in results.get("results", []):
                 print(f"- {res.get('title', '')}")
             print("\nLLM Answer:")
+            print(content)
+            print()
+        case "question":
+            query = args.query
+            limit = args.limit
+            results, content = question_answering(query, limit=limit)
+            print("Search Results:")
+            for res in results.get("results", []):
+                print(f"- {res.get('title', '')}")
+            print("\nAnswer:")
             print(content)
             print()
         case _:

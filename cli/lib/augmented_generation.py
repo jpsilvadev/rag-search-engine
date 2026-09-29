@@ -99,3 +99,33 @@ Answer:
     content = (response.choices[0].message.content or "").strip()
 
     return results, content
+
+
+def question_answering(
+    query: str, limit: int = DEFAULT_SEARCH_LIMIT
+) -> tuple[RRFSearchResult, str]:
+    results: RRFSearchResult = rrf_search(query, limit=limit)
+
+    prompt = f"""
+Answer the user's question based on the provided movies that are available on Webflyx, a streaming service.
+
+Question: {query}
+
+Documents:
+{results}
+
+Instructions:
+- Answer questions directly and concisely
+- Be casual and conversational
+- Don't be cringe or hype-y
+- Talk like a normal person would in a chat conversation
+
+Answer:
+"""
+    response = client.chat.completions.create(
+        model=model, messages=[{"role": "user", "content": prompt}]
+    )
+
+    content = (response.choices[0].message.content or "").strip()
+
+    return results, content
