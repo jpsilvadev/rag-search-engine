@@ -174,7 +174,7 @@ def format_search_result(
     return {
         "id": doc_id,
         "title": title,
-        "document": document[:100],
+        "document": document[:200],
         "score": round(score, SCORE_PRECISION),
         "metadata": metadata,
     }
