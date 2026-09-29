@@ -304,7 +304,7 @@ def semantic_search(query: str, limit: int = 5):
     results = search_instance.search(query, limit)
     for i, result in enumerate(results, start=1):
         print(
-            f"{i}. {result['title']} (score: {result['score']}.4f)\n  {result['description']}\n"
+            f"{i}. {result['title']} (score: {result['score']:.4f})\n  {result['description']}\n"
         )
 
 
