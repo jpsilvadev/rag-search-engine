@@ -9,7 +9,8 @@ wheels/
 # Virtual environments
 .venv
 
-data/
+# pushing data to the repository to allow demos
+# data/
 cache/
 
 .env
