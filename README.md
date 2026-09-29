@@ -1,6 +1,17 @@
 # RAG Search Engine
 
-A command-line movie search engine over ~5,000 movies (`data/movies.json`). It covers keyword search (TF-IDF, BM25), semantic search (sentence embeddings, chunking), hybrid search (weighted and RRF) with query enhancement and reranking, evaluation, retrieval-augmented generation (RAG) and multimodal (image) search.
+A retrieval and RAG pipeline built from scratch, with every stage exposed as a CLI command:
+
+- **Keyword search:** inverted index, TF-IDF and BM25
+- **Semantic search:** sentence embeddings, fixed-size and semantic chunking
+- **Hybrid search:** weighted score fusion and Reciprocal Rank Fusion (RRF)
+- **Query enhancement:** LLM spell correction, rewriting and expansion
+- **Reranking:** LLM (individual and batch) and cross-encoder
+- **Evaluation:** precision@k, recall@k and F1 against a golden dataset, plus LLM relevance scoring
+- **Retrieval-augmented generation:** answers, summaries and cited answers built from the search results
+- **Multimodal search:** image-to-text search with CLIP, and query rewriting from an image
+
+The repo includes a demo dataset of ~5,000 movies (`data/movies.json`), which all the examples below use.
 
 ## Setup
 
